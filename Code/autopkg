@@ -2303,16 +2303,24 @@ def run_recipes(argv):
         try:
             if not skip_trust_verification:
                 verify_parent_trust(recipe, override_dirs, search_dirs, options.verbose)
+        except (TrustVerificationWarning, TrustVerificationError) as err:
+            error_count += 1
+            failure = {}
+            log_err("Failed local trust verification.")
+            failure["recipe"] = recipe_path
+            failure["message"] = str(err)
+            failure["traceback"] = traceback.format_exc()
+            failures.append(failure)
+            autopackager.results.append({"RecipeError": str(err).rstrip()})
+
+        try:
             autopackager.process_cli_overrides(recipe, cli_values)
             autopackager.verify(recipe)
             autopackager.process(recipe)
         except AutoPackagerError as err:
             error_count += 1
             failure = {}
-            if isinstance(err, (TrustVerificationWarning, TrustVerificationError)):
-                log_err("Failed local trust verification.")
-            else:
-                log_err("Failed.")
+            log_err("Failed.")
             failure["recipe"] = recipe_path
             failure["message"] = str(err)
             failure["traceback"] = traceback.format_exc()
